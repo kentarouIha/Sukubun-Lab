@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aoi Satoh | Professional Photography & Visual Arts</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Noto Sans JP -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+                    },
+                    colors: {
+                        gold: {
+                            400: '#d4af37',
+                            500: '#c5a059',
+                            600: '#b08d44'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #fcfbf7;
+            color: #2b2927;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fcfbf7;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1ccbf;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b8b2a2;
+        }
+    </style>
+</head>
+<body x-data="portfolioApp()" class="selection:bg-gold-500 selection:text-white">
+
+    <!-- Image Lightbox Modal -->
+    <div x-show="lightbox.open" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click="lightbox.open = false"
+         @keydown.escape.window="lightbox.open = false"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md cursor-zoom-out" 
+         style="display: none;">
+        
+        <button @click="lightbox.open = false" class="absolute top-6 right-6 text-white/80 hover:text-white text-3xl transition focus:outline-none">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center justify-center" @click.stop>
+            <img :src="lightbox.url" :alt="lightbox.title" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl">
+            <template x-if="lightbox.title">
+                <p class="mt-4 text-white/90 text-sm font-light tracking-widest text-center" x-text="lightbox.title"></p>
+            </template>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <header class="fixed top-0 left-0 right-0 z-40 bg-[#fcfbf7]/80 backdrop-blur-md border-b border-amber-900/10">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center">
+                <!-- 閲覧モード時：サイト名（ロゴ） -->
+                <template x-if="!editMode">
+                    <a href="#top" class="text-xl font-light tracking-widest text-neutral-900 uppercase">
+                        <span class="text-gold-600 font-semibold" x-text="siteName"></span>
+                    </a>
+                </template>
+                <!-- 編集モード時：ヘッダーでそのまま文字入力してサイト名を変更 -->
+                <template x-if="editMode">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-semibold text-gold-600 uppercase tracking-wider">サイト名:</span>
+                        <input type="text" x-model="siteName" class="bg-white border-2 border-gold-500 rounded px-3 py-1 text-sm font-semibold text-neutral-900 focus:outline-none focus:ring-2 focus:ring-gold-400">
+                    </div>
+                </template>
+            </div>
+            <nav class="hidden md:flex items-center space-x-8 text-sm tracking-wider text-neutral-600">
+                <a href="#profile" @click.prevent="document.getElementById('profile').scrollIntoView({ behavior: 'smooth' })" class="hover:text-black transition">PROFILE</a>
+                <a href="#archive" @click.prevent="document.getElementById('archive').scrollIntoView({ behavior: 'smooth' })" class="hover:text-black transition">ARCHIVE</a>
+                <a href="#plans" @click.prevent="document.getElementById('plans').scrollIntoView({ behavior: 'smooth' })" class="hover:text-black transition">PLANS</a>
+                <a href="#workflow" @click.prevent="document.getElementById('workflow').scrollIntoView({ behavior: 'smooth' })" class="hover:text-black transition">WORKFLOW</a>
+                <a href="#licensing" @click.prevent="document.getElementById('licensing').scrollIntoView({ behavior: 'smooth' })" class="hover:text-black transition">LICENSING</a>
+                <a href="#contact" @click.prevent="document.getElementById('contact').scrollIntoView({ behavior: 'smooth' })" class="hover:text-black transition">CONTACT</a>
+            </nav>
+            <div class="flex items-center space-x-4">
+                <!-- Edit Mode Toggle Button -->
+                <button @click="editMode = !editMode" 
+                    class="flex items-center space-x-2 px-4 py-2 rounded-full text-xs font-medium tracking-wider transition border shadow-sm"
+                    :class="editMode ? 'bg-gold-500 text-white border-gold-500 shadow-md' : 'bg-white text-neutral-700 border-stone-300 hover:border-gold-500'">
+                    <i class="fa-solid" :class="editMode ? 'fa-check' : 'fa-pen-to-square'"></i>
+                    <span x-text="editMode ? '編集を完了' : 'サイトを編集'"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main id="top" class="pt-20">
+
+        <!-- ① プロフィールセクション -->
+        <section id="profile" class="py-24 md:py-32 px-6 max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-5 relative group">
+                    <div @click="!editMode && openLightbox(profile.image, profile.name)" class="aspect-[4/5] overflow-hidden rounded-2xl bg-stone-200 border border-stone-300 shadow-lg relative" :class="!editMode ? 'cursor-pointer' : ''">
+                        <img :src="profile.image" alt="Photographer Portrait" class="w-full h-full object-cover transition duration-700" :class="!editMode ? 'group-hover:scale-105' : ''" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800'">
+                        <div x-show="editMode" class="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <label class="cursor-pointer bg-white/90 hover:bg-white text-stone-900 font-medium text-xs px-4 py-2 rounded-full shadow-lg transition flex items-center space-x-2">
+                                <i class="fa-solid fa-camera"></i>
+                                <span>写真を変更</span>
+                                <input type="file" accept="image/*" @change="uploadImage($event, (url) => profile.image = url)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+                    <!-- 編集時の画像URL変更用入力 -->
+                    <div x-show="editMode" class="mt-4 p-4 bg-white rounded-xl border border-gold-500/50 shadow-md space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-stone-600 mb-1">または画像 URL を直接入力</label>
+                            <input type="text" x-model="profile.image" placeholder="https://..." class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-gold-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-7 space-y-6">
+                    <template x-if="!editMode">
+                        <div>
+                            <h1 class="text-3xl md:text-5xl font-light tracking-tight text-stone-900 mb-4" x-text="profile.name"></h1>
+                            <p class="text-gold-600 font-medium text-sm tracking-wider uppercase mb-6" x-text="profile.title"></p>
+                            <p class="text-stone-700 leading-relaxed font-light text-base md:text-lg whitespace-pre-line" x-text="profile.bio"></p>
+                        </div>
+                    </template>
+
+                    <!-- 編集モード時のフォーム -->
+                    <div x-show="editMode" class="space-y-4 p-6 bg-white rounded-2xl border border-gold-500/50 shadow-md">
+                        <div class="text-xs font-bold text-gold-600 uppercase tracking-wider mb-2 pb-2 border-b border-stone-100 flex items-center gap-1.5">
+                            <i class="fa-solid fa-pen"></i> プロフィール基本情報の編集
+                        </div>
+                        <div class="mb-4 bg-gold-500/10 p-3 rounded-xl border border-gold-500/30">
+                            <label class="block text-xs font-bold text-gold-600 mb-1">サイト名 / ロゴ表記 (ヘッダー左上に反映)</label>
+                            <input type="text" x-model="siteName" class="w-full bg-white border border-gold-500 rounded px-3 py-2 text-sm text-stone-800 font-semibold focus:outline-none focus:border-gold-600">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-stone-600 mb-1">お名前 / アーティスト名</label>
+                                <input type="text" x-model="profile.name" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-stone-600 mb-1">肩書 / キャッチコピー</label>
+                                <input type="text" x-model="profile.title" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-stone-600 mb-1">自己紹介文</label>
+                            <textarea x-model="profile.bio" rows="4" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500"></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-stone-100">
+                            <div>
+                                <label class="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-location-dot text-gold-600"></i> 活動拠点 / 出身地 (ピンマーク横)
+                                </label>
+                                <input type="text" x-model="profile.location" placeholder="Tokyo / Japan" class="w-full bg-stone-50 border border-gold-500/50 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-gold-500/30">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-camera text-gold-600"></i> 専門分野 / ジャンル (カメラマーク横)
+                                </label>
+                                <input type="text" x-model="profile.specialty" placeholder="Commercial & Fine Art" class="w-full bg-stone-50 border border-gold-500/50 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-gold-500/30">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-6 pt-4 border-t border-stone-200/60">
+                        <div class="flex items-center space-x-2 text-stone-600 text-sm">
+                            <i class="fa-solid fa-location-dot text-gold-600"></i>
+                            <span x-text="profile.location || 'Tokyo / Japan'" class="font-medium"></span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-stone-600 text-sm">
+                            <i class="fa-solid fa-camera text-gold-600"></i>
+                            <span x-text="profile.specialty || 'Commercial & Fine Art'" class="font-medium"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ② フォトアーカイブセクション -->
+        <section id="archive" class="py-24 bg-[#f5f2e9] border-t border-stone-300/60 px-6">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
+                    <div>
+                        <span class="text-gold-600 text-xs tracking-widest font-semibold uppercase">Portfolio</span>
+                        <h2 class="text-3xl md:text-4xl font-light text-stone-900 mt-1">フォトアーカイブ</h2>
+                    </div>
+                    <!-- ジャンルフィルター -->
+                    <div class="flex flex-wrap gap-2 mt-6 md:mt-0">
+                        <button @click="currentGenre = 'All'" 
+                            :class="currentGenre === 'All' ? 'bg-gold-500 text-white font-medium shadow-sm' : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'"
+                            class="px-4 py-2 rounded-full text-xs tracking-wider transition">すべて</button>
+                        <template x-for="genre in availableGenres">
+                            <button @click="currentGenre = genre" 
+                                :class="currentGenre === genre ? 'bg-gold-500 text-white font-medium shadow-sm' : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'"
+                                class="px-4 py-2 rounded-full text-xs tracking-wider transition" x-text="genre"></button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- 編集モード：写真追加パネル -->
+                <div x-show="editMode" class="mb-12 p-6 bg-white rounded-2xl border border-gold-500/50 shadow-lg">
+                    <h3 class="text-sm font-semibold text-gold-600 uppercase tracking-wider mb-4"><i class="fa-solid fa-plus-circle mr-2"></i>新しい写真を追加</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-medium text-stone-500 mb-1">タイトル</label>
+                            <input type="text" x-model="newArchive.title" placeholder="作品名" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-stone-500 mb-1">ジャンル</label>
+                            <input type="text" x-model="newArchive.genre" placeholder="Portrait / Landscape 等" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-stone-500 mb-1">写真ファイルの選択 / アップロード</label>
+                            <input type="file" accept="image/*" @change="uploadImage($event, (url) => newArchive.url = url)" class="block w-full text-xs text-stone-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gold-500/10 file:text-gold-600 hover:file:bg-gold-500/20 cursor-pointer">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-stone-500 mb-1">または画像 URL</label>
+                        <input type="text" x-model="newArchive.url" placeholder="https://..." class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500">
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button @click="addArchive" class="px-6 py-2 bg-gold-500 text-white text-xs font-semibold rounded-full hover:bg-gold-600 transition shadow">追加する</button>
+                    </div>
+                </div>
+
+                <!-- 写真グリッド -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <template x-for="item in filteredArchives" :key="item.id">
+                        <div class="group relative bg-white rounded-xl overflow-hidden border border-stone-200 shadow-sm hover:shadow-md transition duration-300">
+                            <div @click="!editMode && openLightbox(item.url, item.title)" class="aspect-[4/3] overflow-hidden bg-stone-200 relative" :class="!editMode ? 'cursor-pointer' : ''">
+                                <img :src="item.url" :alt="item.title" class="w-full h-full object-cover transition duration-500" :class="!editMode ? 'group-hover:scale-105' : ''" onerror="this.src='https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&q=80&w=800'">
+                                <div x-show="!editMode" class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                    <i class="fa-solid fa-magnifying-glass-plus text-white text-xl"></i>
+                                </div>
+                                <div x-show="editMode" class="absolute inset-0 bg-black/40 flex items-center justify-center p-2">
+                                    <label class="cursor-pointer bg-white/90 hover:bg-white text-stone-900 font-medium text-xs px-3 py-1.5 rounded-full shadow transition flex items-center space-x-1">
+                                        <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
+                                        <span>画像を差し替え</span>
+                                        <input type="file" accept="image/*" @change="uploadImage($event, (url) => item.url = url)" class="hidden">
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="p-4 flex items-center justify-between">
+                                <div class="flex-1 mr-2">
+                                    <template x-if="!editMode">
+                                        <div>
+                                            <span class="text-xs text-gold-600 font-medium tracking-wider uppercase" x-text="item.genre"></span>
+                                            <h4 class="text-stone-900 font-medium text-sm mt-0.5" x-text="item.title"></h4>
+                                        </div>
+                                    </template>
+                                    <template x-if="editMode">
+                                        <div class="space-y-1">
+                                            <input type="text" x-model="item.genre" class="w-full text-xs text-gold-600 font-medium border border-stone-200 rounded px-1.5 py-0.5 bg-stone-50" placeholder="ジャンル">
+                                            <input type="text" x-model="item.title" class="w-full text-xs text-stone-900 font-medium border border-stone-200 rounded px-1.5 py-0.5 bg-stone-50" placeholder="タイトル">
+                                        </div>
+                                    </template>
+                                </div>
+                                <!-- 編集モード時の削除ボタン -->
+                                <button x-show="editMode" @click="removeArchive(item.id)" class="w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-500 hover:text-white transition flex items-center justify-center flex-shrink-0" title="削除">
+                                    <i class="fa-solid fa-trash text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </section>
+
+        <!-- ③ 写真撮影プランセクション -->
+        <section id="plans" class="py-24 px-6 max-w-7xl mx-auto">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <span class="text-gold-600 text-xs tracking-widest font-semibold uppercase">Services & Pricing</span>
+                <h2 class="text-3xl md:text-4xl font-light text-stone-900 mt-1">写真撮影プラン</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <template x-for="(plan, index) in plans" :key="index">
+                    <div class="bg-white border border-stone-200/80 shadow-sm rounded-2xl p-8 flex flex-col justify-between relative hover:border-gold-500/50 hover:shadow-md transition">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 bg-gold-500/15 text-gold-600 text-xs font-semibold uppercase tracking-wider rounded-full" x-text="'Plan ' + (index === 0 ? 'A' : 'B')"></span>
+                                <span class="text-2xl font-light text-stone-900" x-text="plan.price"></span>
+                            </div>
+                            <template x-if="!editMode">
+                                <div>
+                                    <h3 class="text-xl font-medium text-stone-900 mb-3" x-text="plan.name"></h3>
+                                    <p class="text-stone-600 text-sm leading-relaxed whitespace-pre-line font-light" x-text="plan.desc"></p>
+                                </div>
+                            </template>
+                            <!-- 編集モード -->
+                            <template x-if="editMode">
+                                <div class="space-y-3 mt-4">
+                                    <div>
+                                        <label class="block text-xs text-stone-500 mb-1">プラン名</label>
+                                        <input type="text" x-model="plan.name" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-stone-500 mb-1">値段表記</label>
+                                        <input type="text" x-model="plan.price" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-stone-500 mb-1">説明文</label>
+                                        <textarea x-model="plan.desc" rows="4" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800"></textarea>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <!-- ④ 写真撮影の流れセクション -->
+        <section id="workflow" class="py-24 bg-[#f5f2e9] border-t border-stone-300/60 px-6">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center max-w-2xl mx-auto mb-16">
+                    <span class="text-gold-600 text-xs tracking-widest font-semibold uppercase">Workflow</span>
+                    <h2 class="text-3xl md:text-4xl font-light text-stone-900 mt-1">写真撮影の流れ</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <template x-for="(flow, index) in workflow" :key="index">
+                        <div class="bg-white border border-stone-200/80 rounded-2xl p-6 relative shadow-sm">
+                            <div class="text-4xl font-light text-gold-500/60 mb-4" x-text="flow.step"></div>
+                            <template x-if="!editMode">
+                                <div>
+                                    <h3 class="text-stone-900 font-medium text-base mb-2" x-text="flow.title"></h3>
+                                    <p class="text-stone-600 text-xs leading-relaxed font-light" x-text="flow.desc"></p>
+                                </div>
+                            </template>
+                            <!-- 編集モード -->
+                            <template x-if="editMode">
+                                <div class="space-y-3">
+                                    <input type="text" x-model="flow.title" class="w-full bg-stone-50 border border-stone-300 rounded px-2 py-1 text-xs text-stone-800">
+                                    <textarea x-model="flow.desc" rows="3" class="w-full bg-stone-50 border border-stone-300 rounded px-2 py-1 text-xs text-stone-800"></textarea>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </section>
+
+        <!-- ⑤ 写真レンタル・ライセンス提供セクション（インテリアデザイン） -->
+        <section id="licensing" class="py-24 px-6 max-w-7xl mx-auto">
+            <div class="bg-white border border-stone-200/80 rounded-3xl p-8 md:p-16 relative overflow-hidden shadow-sm">
+                <div class="absolute -right-20 -bottom-20 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div class="max-w-3xl mb-12">
+                    <div class="inline-block px-3 py-1 rounded-full bg-gold-500/15 text-gold-600 text-xs tracking-widest font-semibold uppercase mb-4">
+                        Plan A : Licensing
+                    </div>
+                    <template x-if="!editMode">
+                        <div>
+                            <h2 class="text-3xl md:text-4xl font-light text-stone-900 mb-4" x-text="licensing.title"></h2>
+                            <p class="text-2xl font-light text-gold-600 mb-6" x-text="licensing.price"></p>
+                            <p class="text-stone-700 text-base leading-relaxed font-light whitespace-pre-line" x-text="licensing.desc"></p>
+                        </div>
+                    </template>
+
+                    <!-- 編集モード -->
+                    <template x-if="editMode">
+                        <div class="space-y-4 bg-stone-50 p-6 rounded-xl border border-gold-500/40">
+                            <div>
+                                <label class="block text-xs text-stone-500 mb-1">タイトル名</label>
+                                <input type="text" x-model="licensing.title" class="w-full bg-white border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-stone-500 mb-1">価格・条件</label>
+                                <input type="text" x-model="licensing.price" class="w-full bg-white border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-stone-500 mb-1">説明文</label>
+                                <textarea x-model="licensing.desc" rows="4" class="w-full bg-white border border-stone-300 rounded px-3 py-2 text-sm text-stone-800"></textarea>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- 編集モード：インテリアイメージ追加 -->
+                <div x-show="editMode" class="mb-8 p-6 bg-stone-50 rounded-xl border border-stone-300">
+                    <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-3">インテリアイメージ写真を追加</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div>
+                            <label class="block text-xs text-stone-500 mb-1">端末からアップロード</label>
+                            <input type="file" accept="image/*" @change="uploadLicenseImage($event)" class="block w-full text-xs text-stone-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gold-500/10 file:text-gold-600 hover:file:bg-gold-500/20 cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-stone-500 mb-1">または画像 URL</label>
+                            <div class="flex gap-2">
+                                <input type="text" x-model="newLicenseImg" placeholder="https://..." class="flex-1 bg-white border border-stone-300 rounded px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-gold-500">
+                                <button @click="addLicenseImage" class="px-4 py-1.5 bg-gold-500 text-white text-xs font-semibold rounded hover:bg-gold-600 transition shadow">追加</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- インテリア写真ギャラリー（イメージ用） -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <template x-for="(imgUrl, index) in licensing.images" :key="index">
+                        <div class="relative group aspect-[16/10] rounded-xl overflow-hidden bg-stone-200 border border-stone-200 shadow-sm">
+                            <img @click="openLightbox(imgUrl, 'Interior Design Sample ' + (index + 1))" :src="imgUrl" alt="Interior Design Sample" class="w-full h-full object-cover transition duration-500 group-hover:scale-105 cursor-pointer" onerror="this.src='https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=800'">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center pointer-events-none">
+                                <i x-show="!editMode" class="fa-solid fa-magnifying-glass-plus text-white text-xl"></i>
+                            </div>
+                            <div x-show="editMode" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                <button @click="removeLicenseImage(index)" class="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 transition">削除する</button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </section>
+
+        <!-- ⑥ お問い合わせフォームセクション -->
+        <section id="contact" class="py-24 bg-[#f5f2e9] border-t border-stone-300/60 px-6">
+            <div class="max-w-4xl mx-auto text-center">
+                <template x-if="!editMode">
+                    <div>
+                        <span class="text-gold-600 text-xs tracking-widest font-semibold uppercase" x-text="contact.subtitle"></span>
+                        <h2 class="text-3xl md:text-4xl font-light text-stone-900 mt-1 mb-6" x-text="contact.title"></h2>
+                        <p class="text-stone-600 text-sm mb-12 max-w-xl mx-auto whitespace-pre-line" x-text="contact.description"></p>
+                    </div>
+                </template>
+
+                <!-- 編集モード時のテキスト編集フォーム -->
+                <template x-if="editMode">
+                    <div class="max-w-xl mx-auto p-6 bg-white rounded-2xl border border-gold-500/50 text-left mb-8 shadow-md space-y-4">
+                        <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-2">お問い合わせセクションのテキスト編集</h3>
+                        <div>
+                            <label class="block text-xs text-stone-500 mb-1">サブタイトル</label>
+                            <input type="text" x-model="contact.subtitle" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-stone-500 mb-1">メインタイトル</label>
+                            <input type="text" x-model="contact.title" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-stone-500 mb-1">説明文</label>
+                            <textarea x-model="contact.description" rows="3" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800"></textarea>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- デザイン性のあるコンタクトカード -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-12">
+                    <!-- Instagram リンク -->
+                    <a :href="contact.instagram || '#'" target="_blank" class="group p-8 bg-white border border-stone-200 rounded-2xl hover:border-gold-500 hover:shadow-md transition flex flex-col items-center justify-center space-y-4">
+                        <div class="w-14 h-14 rounded-full bg-gold-500/10 text-gold-600 flex items-center justify-center text-2xl group-hover:bg-gold-500 group-hover:text-white transition">
+                            <i class="fa-brands fa-instagram"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs text-stone-500 uppercase tracking-widest block mb-1">Instagram</span>
+                            <span class="text-stone-900 text-sm font-medium" x-text="formatInstagramHandle(contact.instagram)"></span>
+                        </div>
+                    </a>
+
+                    <!-- Email リンク -->
+                    <a :href="'mailto:' + (contact.email || '')" class="group p-8 bg-white border border-stone-200 rounded-2xl hover:border-gold-500 hover:shadow-md transition flex flex-col items-center justify-center space-y-4">
+                        <div class="w-14 h-14 rounded-full bg-gold-500/10 text-gold-600 flex items-center justify-center text-2xl group-hover:bg-gold-500 group-hover:text-white transition">
+                            <i class="fa-solid fa-envelope"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs text-stone-500 uppercase tracking-widest block mb-1">Direct Mail</span>
+                            <span class="text-stone-900 text-sm font-medium" x-text="contact.email"></span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- 編集モード時のコンタクト設定 -->
+                <div x-show="editMode" class="max-w-xl mx-auto p-6 bg-white rounded-2xl border border-gold-500/50 text-left mb-8 shadow-md">
+                    <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-4">連絡先情報の編集</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs text-stone-500 mb-1">Instagram URL</label>
+                            <input type="text" x-model="contact.instagram" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-stone-500 mb-1">メールアドレス</label>
+                            <input type="text" x-model="contact.email" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-8 bg-[#f5f2e9] border-t border-stone-300/80 text-center text-xs text-stone-500">
+        <p>&copy; <span x-text="new Date().getFullYear()"></span> Aoi Satoh Photography. All Rights Reserved.</p>
+    </footer>
+
+    <!-- Alpine.js Logic -->
+    <script>
+        function portfolioApp() {
+            return {
+                editMode: false,
+                currentGenre: 'All',
+                siteName: 'AOI SATOH',
+
+                lightbox: {
+                    open: false,
+                    url: '',
+                    title: ''
+                },
+
+                openLightbox(url, title = '') {
+                    this.lightbox.url = url;
+                    this.lightbox.title = title;
+                    this.lightbox.open = true;
+                },
+
+                profile: {
+                    name: '佐藤 葵 / Aoi Satoh',
+                    title: 'Commercial & Fine Art Photographer',
+                    location: 'Tokyo / Japan',
+                    bio: '東京を拠点に活動するフォトグラファー。自然光を活かした繊細な色彩表現と、被写体のストーリーを引き出す静寂感のあるポートレートや風景写真を得意としています。商業撮影からアート作品のインテリア展示用ライセンス提供まで幅広く展開しています。',
+                    image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800'
+                },
+
+                archives: [
+                    { id: 1, title: 'Morning Light in Kyoto', genre: 'Landscape', url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&q=80&w=800' },
+                    { id: 2, title: 'Silent Portrait', genre: 'Portrait', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800' },
+                    { id: 3, title: 'Urban Geometry', genre: 'Architecture', url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800' },
+                    { id: 4, title: 'Minimal Still Life', genre: 'Still Life', url: 'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&q=80&w=800' },
+                    { id: 5, title: 'Coastal Breeze', genre: 'Landscape', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800' },
+                    { id: 6, title: 'Shadow & Light', genre: 'Portrait', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=800' }
+                ],
+
+                newArchive: {
+                    title: '',
+                    genre: '',
+                    url: ''
+                },
+
+                get availableGenres() {
+                    const genres = this.archives.map(a => a.genre).filter(Boolean);
+                    return [...new Set(genres)];
+                },
+
+                get filteredArchives() {
+                    if (this.currentGenre === 'All') {
+                        return this.archives;
+                    }
+                    return this.archives.filter(item => item.genre === this.currentGenre);
+                },
+
+                addArchive() {
+                    if (!this.newArchive.url || !this.newArchive.title) {
+                        alert('タイトルと画像は必須です');
+                        return;
+                    }
+                    this.archives.unshift({
+                        id: Date.now(),
+                        title: this.newArchive.title,
+                        genre: this.newArchive.genre || 'General',
+                        url: this.newArchive.url
+                    });
+                    this.newArchive = { title: '', genre: '', url: '' };
+                },
+
+                removeArchive(id) {
+                    this.archives = this.archives.filter(a => a.id !== id);
+                },
+
+                plans: [
+                    {
+                        name: 'ポートレート・個人撮影プラン',
+                        price: '¥35,000〜',
+                        desc: 'ロケーション撮影またはスタジオ撮影（約2時間）。\n丁寧なレタッチを施した高解像度データ 30カットを納品いたします。'
+                    },
+                    {
+                        name: '商業・ブランド撮影プラン',
+                        price: '¥80,000〜',
+                        desc: 'ルックブック、Web広告、各種メディア向けの商業撮影。\n事前ミーティングのうえ、世界観に合わせた撮影ディレクションと納品を行います。'
+                    }
+                ],
+
+                workflow: [
+                    { step: '01', title: 'お問い合わせ', desc: 'フォームより撮影目的や希望日程をご連絡ください。' },
+                    { step: '02', title: '打ち合わせ', desc: 'オンラインまたは対面にてコンセプトや詳細を調整します。' },
+                    { step: '03', title: '撮影当日', desc: 'リラックスした雰囲気の中でイメージ通りの写真を撮影します。' },
+                    { step: '04', title: '納品', desc: 'レタッチ完了後、オンラインギャラリーにてデータを納品します。' }
+                ],
+
+                licensing: {
+                    title: 'インテリア・空間デザイン向け写真ライセンス & アートプリント提供',
+                    price: '応相談（利用期間・展示形態に応じる）',
+                    desc: 'オフィス、ホテル、商業施設、または個人の邸宅向けに、空間の質を高める作品のレンタル・ライセンス提供・額装プリント販売を行っています。空間のコンセプトに合わせたアートのご提案も可能です。',
+                    images: [
+                        'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=800',
+                        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800',
+                        'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&q=80&w=800'
+                    ]
+                },
+
+                newLicenseImg: '',
+
+                addLicenseImage() {
+                    if (this.newLicenseImg) {
+                        this.licensing.images.push(this.newLicenseImg);
+                        this.newLicenseImg = '';
+                    }
+                },
+
+                removeLicenseImage(index) {
+                    this.licensing.images.splice(index, 1);
+                },
+
+                uploadLicenseImage(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.licensing.images.push(e.target.result);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                },
+
+                contact: {
+                    subtitle: 'Get In Touch',
+                    title: 'お問い合わせ・ご相談',
+                    description: '撮影のご依頼、作品ライセンスについてのご相談、コラボレーションなど、お気軽にお問い合わせください。',
+                    instagram: 'https://instagram.com/aoisatoh_photo',
+                    email: 'contact@aoisatoh.com'
+                },
+
+                formatInstagramHandle(url) {
+                    if (!url) return '@instagram';
+                    const parts = url.split('/').filter(Boolean);
+                    const handle = parts[parts.length - 1];
+                    return handle ? `@${handle}` : '@instagram';
+                },
+
+                uploadImage(event, callback) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            callback(e.target.result);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
