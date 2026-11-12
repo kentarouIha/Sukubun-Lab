@@ -80,7 +80,7 @@
     </div>
 
     <!-- Navigation Bar -->
-    <header class="fixed top-0 left-0 right-0 z-40 bg-[#fcfbf7]/80 backdrop-blur-md border-b border-amber-900/10">
+    <header class="fixed top-0 left-0 right-0 z-40 bg-[#fcfbf7]/90 backdrop-blur-md border-b border-amber-900/10">
         <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <div class="flex items-center">
                 <!-- 閲覧モード時：サイト名（ロゴ） -->
@@ -89,14 +89,15 @@
                         <span class="text-gold-600 font-semibold" x-text="siteName"></span>
                     </a>
                 </template>
-                <!-- 編集モード時：ヘッダーでそのまま文字入力してサイト名を変更 -->
+                <!-- 編集モード時：ヘッダーで直接入力 -->
                 <template x-if="editMode">
                     <div class="flex items-center space-x-2">
                         <span class="text-xs font-semibold text-gold-600 uppercase tracking-wider">サイト名:</span>
-                        <input type="text" x-model="siteName" class="bg-white border-2 border-gold-500 rounded px-3 py-1 text-sm font-semibold text-neutral-900 focus:outline-none focus:ring-2 focus:ring-gold-400">
+                        <input type="text" x-model="siteName" @input="saveToLocalStorage()" class="bg-white border-2 border-gold-500 rounded px-3 py-1 text-sm font-semibold text-neutral-900 focus:outline-none focus:ring-2 focus:ring-gold-400">
                     </div>
                 </template>
             </div>
+            
             <nav class="hidden md:flex items-center space-x-8 text-sm tracking-wider text-neutral-600">
                 <a href="#profile" @click.prevent="document.getElementById('profile').scrollIntoView({ behavior: 'smooth' })" class="hover:text-black transition">PROFILE</a>
                 <a href="#archive" @click.prevent="document.getElementById('archive').scrollIntoView({ behavior: 'smooth' })" class="hover:text-black transition">ARCHIVE</a>
@@ -105,12 +106,24 @@
                 <a href="#licensing" @click.prevent="document.getElementById('licensing').scrollIntoView({ behavior: 'smooth' })" class="hover:text-black transition">LICENSING</a>
                 <a href="#contact" @click.prevent="document.getElementById('contact').scrollIntoView({ behavior: 'smooth' })" class="hover:text-black transition">CONTACT</a>
             </nav>
-            <div class="flex items-center space-x-4">
+
+            <div class="flex items-center space-x-3">
+                <!-- 保存トースト -->
+                <div x-show="showSavedToast" x-transition class="fixed bottom-6 right-6 z-50 bg-stone-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-xl flex items-center space-x-2 border border-gold-500/30" style="display: none;">
+                    <i class="fa-solid fa-circle-check text-gold-400"></i>
+                    <span x-text="toastMessage"></span>
+                </div>
+
+                <!-- 初期化ボタン -->
+                <button x-show="editMode" @click="resetToDefault()" class="px-3 py-2 rounded-full text-xs font-medium bg-stone-100 text-stone-600 hover:bg-stone-200 transition border border-stone-300" title="初期状態に戻す">
+                    初期化
+                </button>
+
                 <!-- Edit Mode Toggle Button -->
-                <button @click="editMode = !editMode" 
-                    class="flex items-center space-x-2 px-4 py-2 rounded-full text-xs font-medium tracking-wider transition border shadow-sm"
-                    :class="editMode ? 'bg-gold-500 text-white border-gold-500 shadow-md' : 'bg-white text-neutral-700 border-stone-300 hover:border-gold-500'">
-                    <i class="fa-solid" :class="editMode ? 'fa-check' : 'fa-pen-to-square'"></i>
+                <button type="button" @click="editMode = !editMode" 
+                    class="flex items-center space-x-2 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider transition border shadow-sm cursor-pointer select-none"
+                    :class="editMode ? 'bg-gold-500 text-white border-gold-500 shadow-md ring-2 ring-gold-400/50' : 'bg-white text-neutral-800 border-stone-300 hover:border-gold-500 hover:bg-stone-50'">
+                    <i class="fa-solid text-sm" :class="editMode ? 'fa-check' : 'fa-pen-to-square'"></i>
                     <span x-text="editMode ? '編集を完了' : 'サイトを編集'"></span>
                 </button>
             </div>
@@ -130,7 +143,7 @@
                             <label class="cursor-pointer bg-white/90 hover:bg-white text-stone-900 font-medium text-xs px-4 py-2 rounded-full shadow-lg transition flex items-center space-x-2">
                                 <i class="fa-solid fa-camera"></i>
                                 <span>写真を変更</span>
-                                <input type="file" accept="image/*" @change="uploadImage($event, (url) => profile.image = url)" class="hidden">
+                                <input type="file" accept="image/*" @change="uploadImage($event, (url) => { profile.image = url; saveToLocalStorage(); })" class="hidden">
                             </label>
                         </div>
                     </div>
@@ -138,7 +151,7 @@
                     <div x-show="editMode" class="mt-4 p-4 bg-white rounded-xl border border-gold-500/50 shadow-md space-y-3">
                         <div>
                             <label class="block text-xs font-semibold text-stone-600 mb-1">または画像 URL を直接入力</label>
-                            <input type="text" x-model="profile.image" placeholder="https://..." class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-gold-500">
+                            <input type="text" x-model="profile.image" @input="saveToLocalStorage()" placeholder="https://..." class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-gold-500">
                         </div>
                     </div>
                 </div>
@@ -154,39 +167,42 @@
 
                     <!-- 編集モード時のフォーム -->
                     <div x-show="editMode" class="space-y-4 p-6 bg-white rounded-2xl border border-gold-500/50 shadow-md">
-                        <div class="text-xs font-bold text-gold-600 uppercase tracking-wider mb-2 pb-2 border-b border-stone-100 flex items-center gap-1.5">
-                            <i class="fa-solid fa-pen"></i> プロフィール基本情報の編集
+                        <div class="text-xs font-bold text-gold-600 uppercase tracking-wider mb-2 pb-2 border-b border-stone-100 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-pen"></i> プロフィール基本情報の編集</span>
+                            <button @click="exportData()" class="px-3 py-1 bg-gold-500 hover:bg-gold-600 text-white rounded text-[11px] font-medium transition flex items-center gap-1 shadow-sm">
+                                <i class="fa-solid fa-download"></i> 設定を保存/コピー
+                            </button>
                         </div>
                         <div class="mb-4 bg-gold-500/10 p-3 rounded-xl border border-gold-500/30">
                             <label class="block text-xs font-bold text-gold-600 mb-1">サイト名 / ロゴ表記 (ヘッダー左上に反映)</label>
-                            <input type="text" x-model="siteName" class="w-full bg-white border border-gold-500 rounded px-3 py-2 text-sm text-stone-800 font-semibold focus:outline-none focus:border-gold-600">
+                            <input type="text" x-model="siteName" @input="saveToLocalStorage()" class="w-full bg-white border border-gold-500 rounded px-3 py-2 text-sm text-stone-800 font-semibold focus:outline-none focus:border-gold-600">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-medium text-stone-600 mb-1">お名前 / アーティスト名</label>
-                                <input type="text" x-model="profile.name" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500">
+                                <input type="text" x-model="profile.name" @input="saveToLocalStorage()" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-stone-600 mb-1">肩書 / キャッチコピー</label>
-                                <input type="text" x-model="profile.title" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500">
+                                <input type="text" x-model="profile.title" @input="saveToLocalStorage()" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500">
                             </div>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-stone-600 mb-1">自己紹介文</label>
-                            <textarea x-model="profile.bio" rows="4" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500"></textarea>
+                            <textarea x-model="profile.bio" @input="saveToLocalStorage()" rows="4" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-gold-500"></textarea>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-stone-100">
                             <div>
                                 <label class="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1">
                                     <i class="fa-solid fa-location-dot text-gold-600"></i> 活動拠点 / 出身地 (ピンマーク横)
                                 </label>
-                                <input type="text" x-model="profile.location" placeholder="Tokyo / Japan" class="w-full bg-stone-50 border border-gold-500/50 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-gold-500/30">
+                                <input type="text" x-model="profile.location" @input="saveToLocalStorage()" placeholder="Tokyo / Japan" class="w-full bg-stone-50 border border-gold-500/50 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-gold-500/30">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-stone-700 mb-1 flex items-center gap-1">
                                     <i class="fa-solid fa-camera text-gold-600"></i> 専門分野 / ジャンル (カメラマーク横)
                                 </label>
-                                <input type="text" x-model="profile.specialty" placeholder="Commercial & Fine Art" class="w-full bg-stone-50 border border-gold-500/50 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-gold-500/30">
+                                <input type="text" x-model="profile.specialty" @input="saveToLocalStorage()" placeholder="Commercial & Fine Art" class="w-full bg-stone-50 border border-gold-500/50 rounded px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-gold-500/30">
                             </div>
                         </div>
                     </div>
@@ -265,7 +281,7 @@
                                     <label class="cursor-pointer bg-white/90 hover:bg-white text-stone-900 font-medium text-xs px-3 py-1.5 rounded-full shadow transition flex items-center space-x-1">
                                         <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
                                         <span>画像を差し替え</span>
-                                        <input type="file" accept="image/*" @change="uploadImage($event, (url) => item.url = url)" class="hidden">
+                                        <input type="file" accept="image/*" @change="uploadImage($event, (url) => { item.url = url; saveToLocalStorage(); })" class="hidden">
                                     </label>
                                 </div>
                             </div>
@@ -279,8 +295,8 @@
                                     </template>
                                     <template x-if="editMode">
                                         <div class="space-y-1">
-                                            <input type="text" x-model="item.genre" class="w-full text-xs text-gold-600 font-medium border border-stone-200 rounded px-1.5 py-0.5 bg-stone-50" placeholder="ジャンル">
-                                            <input type="text" x-model="item.title" class="w-full text-xs text-stone-900 font-medium border border-stone-200 rounded px-1.5 py-0.5 bg-stone-50" placeholder="タイトル">
+                                            <input type="text" x-model="item.genre" @input="saveToLocalStorage()" class="w-full text-xs text-gold-600 font-medium border border-stone-200 rounded px-1.5 py-0.5 bg-stone-50" placeholder="ジャンル">
+                                            <input type="text" x-model="item.title" @input="saveToLocalStorage()" class="w-full text-xs text-stone-900 font-medium border border-stone-200 rounded px-1.5 py-0.5 bg-stone-50" placeholder="タイトル">
                                         </div>
                                     </template>
                                 </div>
@@ -295,230 +311,247 @@
             </div>
         </section>
 
-        <!-- ③ 写真撮影プランセクション -->
+        <!-- 撮影プランセクション -->
         <section id="plans" class="py-24 px-6 max-w-7xl mx-auto">
             <div class="text-center max-w-2xl mx-auto mb-16">
-                <span class="text-gold-600 text-xs tracking-widest font-semibold uppercase">Services & Pricing</span>
-                <h2 class="text-3xl md:text-4xl font-light text-stone-900 mt-1">写真撮影プラン</h2>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <template x-for="(plan, index) in plans" :key="index">
-                    <div class="bg-white border border-stone-200/80 shadow-sm rounded-2xl p-8 flex flex-col justify-between relative hover:border-gold-500/50 hover:shadow-md transition">
-                        <div>
-                            <div class="flex items-center justify-between mb-4">
-                                <span class="px-3 py-1 bg-gold-500/15 text-gold-600 text-xs font-semibold uppercase tracking-wider rounded-full" x-text="'Plan ' + (index === 0 ? 'A' : 'B')"></span>
-                                <span class="text-2xl font-light text-stone-900" x-text="plan.price"></span>
-                            </div>
-                            <template x-if="!editMode">
-                                <div>
-                                    <h3 class="text-xl font-medium text-stone-900 mb-3" x-text="plan.name"></h3>
-                                    <p class="text-stone-600 text-sm leading-relaxed whitespace-pre-line font-light" x-text="plan.desc"></p>
-                                </div>
-                            </template>
-                            <!-- 編集モード -->
-                            <template x-if="editMode">
-                                <div class="space-y-3 mt-4">
-                                    <div>
-                                        <label class="block text-xs text-stone-500 mb-1">プラン名</label>
-                                        <input type="text" x-model="plan.name" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs text-stone-500 mb-1">値段表記</label>
-                                        <input type="text" x-model="plan.price" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs text-stone-500 mb-1">説明文</label>
-                                        <textarea x-model="plan.desc" rows="4" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800"></textarea>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </section>
-
-        <!-- ④ 写真撮影の流れセクション -->
-        <section id="workflow" class="py-24 bg-[#f5f2e9] border-t border-stone-300/60 px-6">
-            <div class="max-w-7xl mx-auto">
-                <div class="text-center max-w-2xl mx-auto mb-16">
-                    <span class="text-gold-600 text-xs tracking-widest font-semibold uppercase">Workflow</span>
-                    <h2 class="text-3xl md:text-4xl font-light text-stone-900 mt-1">写真撮影の流れ</h2>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <template x-for="(flow, index) in workflow" :key="index">
-                        <div class="bg-white border border-stone-200/80 rounded-2xl p-6 relative shadow-sm">
-                            <div class="text-4xl font-light text-gold-500/60 mb-4" x-text="flow.step"></div>
-                            <template x-if="!editMode">
-                                <div>
-                                    <h3 class="text-stone-900 font-medium text-base mb-2" x-text="flow.title"></h3>
-                                    <p class="text-stone-600 text-xs leading-relaxed font-light" x-text="flow.desc"></p>
-                                </div>
-                            </template>
-                            <!-- 編集モード -->
-                            <template x-if="editMode">
-                                <div class="space-y-3">
-                                    <input type="text" x-model="flow.title" class="w-full bg-stone-50 border border-stone-300 rounded px-2 py-1 text-xs text-stone-800">
-                                    <textarea x-model="flow.desc" rows="3" class="w-full bg-stone-50 border border-stone-300 rounded px-2 py-1 text-xs text-stone-800"></textarea>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </section>
-
-        <!-- ⑤ 写真レンタル・ライセンス提供セクション（インテリアデザイン） -->
-        <section id="licensing" class="py-24 px-6 max-w-7xl mx-auto">
-            <div class="bg-white border border-stone-200/80 rounded-3xl p-8 md:p-16 relative overflow-hidden shadow-sm">
-                <div class="absolute -right-20 -bottom-20 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                
-                <div class="max-w-3xl mb-12">
-                    <div class="inline-block px-3 py-1 rounded-full bg-gold-500/15 text-gold-600 text-xs tracking-widest font-semibold uppercase mb-4">
-                        Plan A : Licensing
-                    </div>
-                    <template x-if="!editMode">
-                        <div>
-                            <h2 class="text-3xl md:text-4xl font-light text-stone-900 mb-4" x-text="licensing.title"></h2>
-                            <p class="text-2xl font-light text-gold-600 mb-6" x-text="licensing.price"></p>
-                            <p class="text-stone-700 text-base leading-relaxed font-light whitespace-pre-line" x-text="licensing.desc"></p>
-                        </div>
-                    </template>
-
-                    <!-- 編集モード -->
-                    <template x-if="editMode">
-                        <div class="space-y-4 bg-stone-50 p-6 rounded-xl border border-gold-500/40">
-                            <div>
-                                <label class="block text-xs text-stone-500 mb-1">タイトル名</label>
-                                <input type="text" x-model="licensing.title" class="w-full bg-white border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-stone-500 mb-1">価格・条件</label>
-                                <input type="text" x-model="licensing.price" class="w-full bg-white border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-stone-500 mb-1">説明文</label>
-                                <textarea x-model="licensing.desc" rows="4" class="w-full bg-white border border-stone-300 rounded px-3 py-2 text-sm text-stone-800"></textarea>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-
-                <!-- 編集モード：インテリアイメージ追加 -->
-                <div x-show="editMode" class="mb-8 p-6 bg-stone-50 rounded-xl border border-stone-300">
-                    <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-3">インテリアイメージ写真を追加</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                        <div>
-                            <label class="block text-xs text-stone-500 mb-1">端末からアップロード</label>
-                            <input type="file" accept="image/*" @change="uploadLicenseImage($event)" class="block w-full text-xs text-stone-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gold-500/10 file:text-gold-600 hover:file:bg-gold-500/20 cursor-pointer">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-stone-500 mb-1">または画像 URL</label>
-                            <div class="flex gap-2">
-                                <input type="text" x-model="newLicenseImg" placeholder="https://..." class="flex-1 bg-white border border-stone-300 rounded px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-gold-500">
-                                <button @click="addLicenseImage" class="px-4 py-1.5 bg-gold-500 text-white text-xs font-semibold rounded hover:bg-gold-600 transition shadow">追加</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- インテリア写真ギャラリー（イメージ用） -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <template x-for="(imgUrl, index) in licensing.images" :key="index">
-                        <div class="relative group aspect-[16/10] rounded-xl overflow-hidden bg-stone-200 border border-stone-200 shadow-sm">
-                            <img @click="openLightbox(imgUrl, 'Interior Design Sample ' + (index + 1))" :src="imgUrl" alt="Interior Design Sample" class="w-full h-full object-cover transition duration-500 group-hover:scale-105 cursor-pointer" onerror="this.src='https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=800'">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center pointer-events-none">
-                                <i x-show="!editMode" class="fa-solid fa-magnifying-glass-plus text-white text-xl"></i>
-                            </div>
-                            <div x-show="editMode" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                                <button @click="removeLicenseImage(index)" class="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 transition">削除する</button>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </section>
-
-        <!-- ⑥ お問い合わせフォームセクション -->
-        <section id="contact" class="py-24 bg-[#f5f2e9] border-t border-stone-300/60 px-6">
-            <div class="max-w-4xl mx-auto text-center">
                 <template x-if="!editMode">
                     <div>
-                        <span class="text-gold-600 text-xs tracking-widest font-semibold uppercase" x-text="contact.subtitle"></span>
-                        <h2 class="text-3xl md:text-4xl font-light text-stone-900 mt-1 mb-6" x-text="contact.title"></h2>
-                        <p class="text-stone-600 text-sm mb-12 max-w-xl mx-auto whitespace-pre-line" x-text="contact.description"></p>
+                        <span class="text-gold-600 text-xs tracking-widest font-semibold uppercase" x-text="plansData.subtitle"></span>
+                        <h2 class="text-3xl md:text-4xl font-light text-stone-900 mt-1" x-text="plansData.title"></h2>
                     </div>
                 </template>
-
-                <!-- 編集モード時のテキスト編集フォーム -->
                 <template x-if="editMode">
-                    <div class="max-w-xl mx-auto p-6 bg-white rounded-2xl border border-gold-500/50 text-left mb-8 shadow-md space-y-4">
-                        <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-2">お問い合わせセクションのテキスト編集</h3>
+                    <div class="space-y-3 bg-white p-6 rounded-2xl border border-gold-500/50 shadow-md">
+                        <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-2 text-left">プランセクション見出しの編集</h3>
                         <div>
-                            <label class="block text-xs text-stone-500 mb-1">サブタイトル</label>
-                            <input type="text" x-model="contact.subtitle" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                            <input type="text" x-model="plansData.subtitle" @input="saveToLocalStorage()" placeholder="サブタイトル" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 text-center">
                         </div>
                         <div>
-                            <label class="block text-xs text-stone-500 mb-1">メインタイトル</label>
-                            <input type="text" x-model="contact.title" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-stone-500 mb-1">説明文</label>
-                            <textarea x-model="contact.description" rows="3" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800"></textarea>
+                            <input type="text" x-model="plansData.title" @input="saveToLocalStorage()" placeholder="メインタイトル" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 text-center font-bold">
                         </div>
                     </div>
                 </template>
+            </div>
 
-                <!-- デザイン性のあるコンタクトカード -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-12">
-                    <!-- Instagram リンク -->
-                    <a :href="contact.instagram || '#'" target="_blank" class="group p-8 bg-white border border-stone-200 rounded-2xl hover:border-gold-500 hover:shadow-md transition flex flex-col items-center justify-center space-y-4">
-                        <div class="w-14 h-14 rounded-full bg-gold-500/10 text-gold-600 flex items-center justify-center text-2xl group-hover:bg-gold-500 group-hover:text-white transition">
-                            <i class="fa-brands fa-instagram"></i>
-                        </div>
-                        <div>
-                            <span class="text-xs text-stone-500 uppercase tracking-widest block mb-1">Instagram</span>
-                            <span class="text-stone-900 text-sm font-medium" x-text="formatInstagramHandle(contact.instagram)"></span>
-                        </div>
-                    </a>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <template x-for="(plan, index) in plansData.items" :key="index">
+                    <div class="bg-white border border-stone-200/80 rounded-3xl p-8 md:p-10 shadow-sm relative group hover:shadow-md transition duration-300 flex flex-col">
+                        <template x-if="!editMode">
+                            <div class="flex-1">
+                                <h3 class="text-2xl font-light text-stone-900 mb-2" x-text="plan.name"></h3>
+                                <p class="text-xl font-medium text-gold-600 mb-6" x-text="plan.price"></p>
+                                <p class="text-stone-600 text-sm leading-relaxed font-light mb-8" x-text="plan.description"></p>
+                                <ul class="space-y-3">
+                                    <template x-for="feature in plan.features">
+                                        <li class="flex items-start text-sm text-stone-700 font-light">
+                                            <i class="fa-solid fa-check text-gold-500 mt-1 mr-3 text-xs"></i>
+                                            <span x-text="feature"></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+                        <!-- 編集モード -->
+                        <template x-if="editMode">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-stone-500 mb-1">プラン名</label>
+                                    <input type="text" x-model="plan.name" @input="saveToLocalStorage()" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-stone-500 mb-1">価格</label>
+                                    <input type="text" x-model="plan.price" @input="saveToLocalStorage()" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-stone-500 mb-1">説明</label>
+                                    <textarea x-model="plan.description" @input="saveToLocalStorage()" rows="3" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-stone-500 mb-2">特徴・内容 (改行で区切る)</label>
+                                    <textarea 
+                                        :value="plan.features.join('\n')" 
+                                        @input="plan.features = $event.target.value.split('\n'); saveToLocalStorage()" 
+                                        rows="4" 
+                                        placeholder="特徴1&#10;特徴2"
+                                        class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800 leading-relaxed"></textarea>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </section>
 
-                    <!-- Email リンク -->
-                    <a :href="'mailto:' + (contact.email || '')" class="group p-8 bg-white border border-stone-200 rounded-2xl hover:border-gold-500 hover:shadow-md transition flex flex-col items-center justify-center space-y-4">
-                        <div class="w-14 h-14 rounded-full bg-gold-500/10 text-gold-600 flex items-center justify-center text-2xl group-hover:bg-gold-500 group-hover:text-white transition">
-                            <i class="fa-solid fa-envelope"></i>
+        <!-- ③ 写真撮影の流れセクション -->
+        <section id="workflow" class="py-24 px-6 max-w-7xl mx-auto">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <span class="text-gold-600 text-xs tracking-widest font-semibold uppercase">Workflow</span>
+                <h2 class="text-3xl md:text-4xl font-light text-stone-900 mt-1">写真撮影の流れ</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <template x-for="(flow, index) in workflow" :key="index">
+                    <div class="bg-white border border-stone-200/80 rounded-2xl p-6 relative shadow-sm">
+                        <div class="text-4xl font-light text-gold-500/60 mb-4" x-text="flow.step"></div>
+                        <template x-if="!editMode">
+                            <div>
+                                <h3 class="text-stone-900 font-medium text-base mb-2" x-text="flow.title"></h3>
+                                <p class="text-stone-600 text-xs leading-relaxed font-light" x-text="flow.desc"></p>
+                            </div>
+                        </template>
+                        <!-- 編集モード -->
+                        <template x-if="editMode">
+                            <div class="space-y-3">
+                                <input type="text" x-model="flow.title" @input="saveToLocalStorage()" class="w-full bg-stone-50 border border-stone-300 rounded px-2 py-1 text-xs text-stone-800">
+                                <textarea x-model="flow.desc" @input="saveToLocalStorage()" rows="3" class="w-full bg-stone-50 border border-stone-300 rounded px-2 py-1 text-xs text-stone-800"></textarea>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <!-- ④ 写真レンタル・ライセンス提供セクション（インテリアデザイン） -->
+        <section id="licensing" class="py-24 bg-[#f5f2e9] border-t border-stone-300/60 px-6">
+            <div class="max-w-7xl mx-auto">
+                <div class="bg-white border border-stone-200/80 rounded-3xl p-8 md:p-16 relative overflow-hidden shadow-sm">
+                    <div class="absolute -right-20 -bottom-20 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    
+                    <div class="max-w-3xl mb-12">
+                        <template x-if="!editMode">
+                            <div>
+                                <h2 class="text-3xl md:text-4xl font-light text-stone-900 mb-4" x-text="licensing.title"></h2>
+                                <p class="text-2xl font-light text-gold-600 mb-6" x-text="licensing.price"></p>
+                                <p class="text-stone-700 text-base leading-relaxed font-light whitespace-pre-line" x-text="licensing.desc"></p>
+                            </div>
+                        </template>
+
+                        <!-- 編集モード -->
+                        <template x-if="editMode">
+                            <div class="space-y-4 bg-stone-50 p-6 rounded-xl border border-gold-500/40">
+                                <div>
+                                    <label class="block text-xs text-stone-500 mb-1">タイトル名</label>
+                                    <input type="text" x-model="licensing.title" @input="saveToLocalStorage()" class="w-full bg-white border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-stone-500 mb-1">価格・条件</label>
+                                    <input type="text" x-model="licensing.price" @input="saveToLocalStorage()" class="w-full bg-white border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-stone-500 mb-1">説明文</label>
+                                    <textarea x-model="licensing.desc" @input="saveToLocalStorage()" rows="4" class="w-full bg-white border border-stone-300 rounded px-3 py-2 text-sm text-stone-800"></textarea>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- 編集モード：インテリアイメージ追加 -->
+                    <div x-show="editMode" class="mb-8 p-6 bg-stone-50 rounded-xl border border-stone-300">
+                        <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-3">インテリアイメージ写真を追加</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                            <div>
+                                <label class="block text-xs text-stone-500 mb-1">端末からアップロード</label>
+                                <input type="file" accept="image/*" @change="uploadLicenseImage($event)" class="block w-full text-xs text-stone-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gold-500/10 file:text-gold-600 hover:file:bg-gold-500/20 cursor-pointer">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-stone-500 mb-1">または画像 URL</label>
+                                <div class="flex gap-2">
+                                    <input type="text" x-model="newLicenseImg" placeholder="https://..." class="flex-1 bg-white border border-stone-300 rounded px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-gold-500">
+                                    <button @click="addLicenseImage" class="px-4 py-1.5 bg-gold-500 text-white text-xs font-semibold rounded hover:bg-gold-600 transition shadow">追加</button>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <span class="text-xs text-stone-500 uppercase tracking-widest block mb-1">Direct Mail</span>
-                            <span class="text-stone-900 text-sm font-medium" x-text="contact.email"></span>
-                        </div>
-                    </a>
+                    </div>
+
+                    <!-- インテリア写真ギャラリー（イメージ用） -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <template x-for="(imgUrl, index) in licensing.images" :key="index">
+                            <div class="relative group aspect-[16/10] rounded-xl overflow-hidden bg-stone-200 border border-stone-200 shadow-sm">
+                                <img @click="!editMode && openLightbox(imgUrl, 'Interior Design Sample ' + (index + 1))" :src="imgUrl" alt="Interior Design Sample" class="w-full h-full object-cover transition duration-500" :class="!editMode ? 'group-hover:scale-105 cursor-pointer' : ''" onerror="this.src='https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=800'">
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center pointer-events-none">
+                                    <i x-show="!editMode" class="fa-solid fa-magnifying-glass-plus text-white text-xl"></i>
+                                </div>
+                                <div x-show="editMode" class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                    <button @click="removeLicenseImage(index)" class="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 transition">削除する</button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
                 </div>
+            </div>
+        </section>
 
-                <!-- 編集モード時のコンタクト設定 -->
-                <div x-show="editMode" class="max-w-xl mx-auto p-6 bg-white rounded-2xl border border-gold-500/50 text-left mb-8 shadow-md">
-                    <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-4">連絡先情報の編集</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs text-stone-500 mb-1">Instagram URL</label>
-                            <input type="text" x-model="contact.instagram" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-stone-500 mb-1">メールアドレス</label>
-                            <input type="text" x-model="contact.email" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
-                        </div>
+        <!-- ⑤ お問い合わせフォームセクション -->
+        <section id="contact" class="py-24 px-6 max-w-4xl mx-auto text-center">
+            <template x-if="!editMode">
+                <div>
+                    <span class="text-gold-600 text-xs tracking-widest font-semibold uppercase" x-text="contact.subtitle"></span>
+                    <h2 class="text-3xl md:text-4xl font-light text-stone-900 mt-1 mb-6" x-text="contact.title"></h2>
+                    <p class="text-stone-600 text-sm mb-12 max-w-xl mx-auto whitespace-pre-line" x-text="contact.description"></p>
+                </div>
+            </template>
+
+            <!-- 編集モード時のテキスト編集フォーム -->
+            <template x-if="editMode">
+                <div class="max-w-xl mx-auto p-6 bg-white rounded-2xl border border-gold-500/50 text-left mb-8 shadow-md space-y-4">
+                    <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-2">お問い合わせセクションのテキスト編集</h3>
+                    <div>
+                        <label class="block text-xs text-stone-500 mb-1">サブタイトル</label>
+                        <input type="text" x-model="contact.subtitle" @input="saveToLocalStorage()" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-stone-500 mb-1">メインタイトル</label>
+                        <input type="text" x-model="contact.title" @input="saveToLocalStorage()" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-stone-500 mb-1">説明文</label>
+                        <textarea x-model="contact.description" @input="saveToLocalStorage()" rows="3" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800"></textarea>
+                    </div>
+                </div>
+            </template>
+
+            <!-- デザイン性のあるコンタクトカード -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-12">
+                <!-- Instagram リンク -->
+                <a :href="contact.instagram || '#'" target="_blank" class="group p-8 bg-white border border-stone-200 rounded-2xl hover:border-gold-500 hover:shadow-md transition flex flex-col items-center justify-center space-y-4">
+                    <div class="w-14 h-14 rounded-full bg-gold-500/10 text-gold-600 flex items-center justify-center text-2xl group-hover:bg-gold-500 group-hover:text-white transition">
+                        <i class="fa-brands fa-instagram"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-stone-500 uppercase tracking-widest block mb-1">Instagram</span>
+                        <span class="text-stone-900 text-sm font-medium" x-text="formatInstagramHandle(contact.instagram)"></span>
+                    </div>
+                </a>
+
+                <!-- Email リンク -->
+                <a :href="'mailto:' + (contact.email || '')" class="group p-8 bg-white border border-stone-200 rounded-2xl hover:border-gold-500 hover:shadow-md transition flex flex-col items-center justify-center space-y-4">
+                    <div class="w-14 h-14 rounded-full bg-gold-500/10 text-gold-600 flex items-center justify-center text-2xl group-hover:bg-gold-500 group-hover:text-white transition">
+                        <i class="fa-solid fa-envelope"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-stone-500 uppercase tracking-widest block mb-1">Direct Mail</span>
+                        <span class="text-stone-900 text-sm font-medium" x-text="contact.email"></span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 編集モード時のコンタクト設定 -->
+            <div x-show="editMode" class="max-w-xl mx-auto p-6 bg-white rounded-2xl border border-gold-500/50 text-left mb-8 shadow-md">
+                <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-4">連絡先情報の編集</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-stone-500 mb-1">Instagram URL</label>
+                        <input type="text" x-model="contact.instagram" @input="saveToLocalStorage()" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-stone-500 mb-1">メールアドレス</label>
+                        <input type="text" x-model="contact.email" @input="saveToLocalStorage()" class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-sm text-stone-800">
                     </div>
                 </div>
             </div>
         </section>
 
     </main>
-
-    <!-- Footer -->
-    <footer class="py-8 bg-[#f5f2e9] border-t border-stone-300/80 text-center text-xs text-stone-500">
-        <p>&copy; <span x-text="new Date().getFullYear()"></span> Aoi Satoh Photography. All Rights Reserved.</p>
-    </footer>
 
     <!-- Alpine.js Logic -->
     <script>
@@ -527,11 +560,86 @@
                 editMode: false,
                 currentGenre: 'All',
                 siteName: 'AOI SATOH',
+                showSavedToast: false,
+                toastMessage: '変更内容を保存しました',
 
                 lightbox: {
                     open: false,
                     url: '',
                     title: ''
+                },
+
+                init() {
+                    try {
+                        const saved = localStorage.getItem('aoi_satoh_portfolio_v4');
+                        if (saved) {
+                            const data = JSON.parse(saved);
+                            if (data.siteName) this.siteName = data.siteName;
+                            if (data.profile) this.profile = data.profile;
+                            if (data.archives) this.archives = data.archives;
+                            if (data.plansData) this.plansData = data.plansData;
+                            if (data.workflow) this.workflow = data.workflow;
+                            if (data.licensing) this.licensing = data.licensing;
+                            if (data.contact) this.contact = data.contact;
+                        }
+                    } catch(e) {
+                        console.warn('LocalStorage notice:', e);
+                    }
+                },
+
+                saveToLocalStorage() {
+                    const data = {
+                        siteName: this.siteName,
+                        profile: this.profile,
+                        archives: this.archives,
+                        plansData: this.plansData,
+                        workflow: this.workflow,
+                        licensing: this.licensing,
+                        contact: this.contact
+                    };
+                    try {
+                        localStorage.setItem('aoi_satoh_portfolio_v4', JSON.stringify(data));
+                        this.showSavedToast = true;
+                        this.toastMessage = '変更を自動保存しました';
+                        setTimeout(() => {
+                            this.showSavedToast = false;
+                        }, 1500);
+                    } catch(e) {
+                        console.warn('LocalStorage error:', e);
+                    }
+                },
+
+                exportData() {
+                    const data = {
+                        siteName: this.siteName,
+                        profile: this.profile,
+                        archives: this.archives,
+                        plansData: this.plansData,
+                        workflow: this.workflow,
+                        licensing: this.licensing,
+                        contact: this.contact
+                    };
+                    const jsonStr = JSON.stringify(data, null, 2);
+                    const textarea = document.createElement('textarea');
+                    textarea.value = jsonStr;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    try {
+                        document.execCommand('copy');
+                        alert('設定データをクリップボードにコピーしました！');
+                    } catch(err) {
+                        prompt('以下のデータをコピーしてください:', jsonStr);
+                    }
+                    document.body.removeChild(textarea);
+                },
+
+                resetToDefault() {
+                    if (confirm('すべての編集内容を初期状態にリセットしますか？')) {
+                        try {
+                            localStorage.removeItem('aoi_satoh_portfolio_v4');
+                        } catch(e) {}
+                        window.location.reload();
+                    }
                 },
 
                 openLightbox(url, title = '') {
@@ -544,6 +652,7 @@
                     name: '佐藤 葵 / Aoi Satoh',
                     title: 'Commercial & Fine Art Photographer',
                     location: 'Tokyo / Japan',
+                    specialty: 'Commercial & Fine Art',
                     bio: '東京を拠点に活動するフォトグラファー。自然光を活かした繊細な色彩表現と、被写体のストーリーを引き出す静寂感のあるポートレートや風景写真を得意としています。商業撮影からアート作品のインテリア展示用ライセンス提供まで幅広く展開しています。',
                     image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800'
                 },
@@ -587,24 +696,32 @@
                         url: this.newArchive.url
                     });
                     this.newArchive = { title: '', genre: '', url: '' };
+                    this.saveToLocalStorage();
                 },
 
                 removeArchive(id) {
                     this.archives = this.archives.filter(a => a.id !== id);
+                    this.saveToLocalStorage();
                 },
 
-                plans: [
-                    {
-                        name: 'ポートレート・個人撮影プラン',
-                        price: '¥35,000〜',
-                        desc: 'ロケーション撮影またはスタジオ撮影（約2時間）。\n丁寧なレタッチを施した高解像度データ 30カットを納品いたします。'
-                    },
-                    {
-                        name: '商業・ブランド撮影プラン',
-                        price: '¥80,000〜',
-                        desc: 'ルックブック、Web広告、各種メディア向けの商業撮影。\n事前ミーティングのうえ、世界観に合わせた撮影ディレクションと納品を行います。'
-                    }
-                ],
+                plansData: {
+                    title: '撮影プラン',
+                    subtitle: 'Plans & Pricing',
+                    items: [
+                        {
+                            name: 'Portrait Session',
+                            price: '¥30,000〜',
+                            description: '個人のプロフィール、アーティスト写真、記念日の撮影など、自然な表情を引き出すポートレートプランです。',
+                            features: ['撮影時間 1〜2時間', 'レタッチ済みデータ 20カット', 'オンラインギャラリー納品', 'ロケーション相談可']
+                        },
+                        {
+                            name: 'Commercial & Editorial',
+                            price: '¥80,000〜',
+                            description: '企業様のブランディング、商品撮影、店舗撮影、雑誌のエディトリアルなど、目的に合わせた柔軟な商業撮影プランです。',
+                            features: ['半日〜1日撮影', '全データ納品（基本レタッチ込）', '商用利用ライセンス', '事前のオンラインミーティング']
+                        }
+                    ]
+                },
 
                 workflow: [
                     { step: '01', title: 'お問い合わせ', desc: 'フォームより撮影目的や希望日程をご連絡ください。' },
@@ -630,11 +747,13 @@
                     if (this.newLicenseImg) {
                         this.licensing.images.push(this.newLicenseImg);
                         this.newLicenseImg = '';
+                        this.saveToLocalStorage();
                     }
                 },
 
                 removeLicenseImage(index) {
                     this.licensing.images.splice(index, 1);
+                    this.saveToLocalStorage();
                 },
 
                 uploadLicenseImage(event) {
@@ -643,6 +762,7 @@
                         const reader = new FileReader();
                         reader.onload = (e) => {
                             this.licensing.images.push(e.target.result);
+                            this.saveToLocalStorage();
                         };
                         reader.readAsDataURL(file);
                     }
@@ -669,6 +789,7 @@
                         const reader = new FileReader();
                         reader.onload = (e) => {
                             callback(e.target.result);
+                            this.saveToLocalStorage();
                         };
                         reader.readAsDataURL(file);
                     }
