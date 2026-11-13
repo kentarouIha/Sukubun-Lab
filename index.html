@@ -114,18 +114,23 @@
                     <span x-text="toastMessage"></span>
                 </div>
 
-                <!-- 初期化ボタン -->
-                <button x-show="editMode" @click="resetToDefault()" class="px-3 py-2 rounded-full text-xs font-medium bg-stone-100 text-stone-600 hover:bg-stone-200 transition border border-stone-300" title="初期状態に戻す">
-                    初期化
-                </button>
+                <!-- URLパラメータに ?admin=true がある場合のみ表示される領域 -->
+                <template x-if="isAdmin">
+                    <div class="flex items-center space-x-3">
+                        <!-- 初期化ボタン -->
+                        <button x-show="editMode" @click="resetToDefault()" class="px-3 py-2 rounded-full text-xs font-medium bg-stone-100 text-stone-600 hover:bg-stone-200 transition border border-stone-300" title="初期状態に戻す">
+                            初期化
+                        </button>
 
-                <!-- Edit Mode Toggle Button -->
-                <button type="button" @click="editMode = !editMode" 
-                    class="flex items-center space-x-2 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider transition border shadow-sm cursor-pointer select-none"
-                    :class="editMode ? 'bg-gold-500 text-white border-gold-500 shadow-md ring-2 ring-gold-400/50' : 'bg-white text-neutral-800 border-stone-300 hover:border-gold-500 hover:bg-stone-50'">
-                    <i class="fa-solid text-sm" :class="editMode ? 'fa-check' : 'fa-pen-to-square'"></i>
-                    <span x-text="editMode ? '編集を完了' : 'サイトを編集'"></span>
-                </button>
+                        <!-- Edit Mode Toggle Button -->
+                        <button type="button" @click="editMode = !editMode" 
+                            class="flex items-center space-x-2 px-5 py-2.5 rounded-full text-xs font-semibold tracking-wider transition border shadow-sm cursor-pointer select-none"
+                            :class="editMode ? 'bg-gold-500 text-white border-gold-500 shadow-md ring-2 ring-gold-400/50' : 'bg-white text-neutral-800 border-stone-300 hover:border-gold-500 hover:bg-stone-50'">
+                            <i class="fa-solid text-sm" :class="editMode ? 'fa-check' : 'fa-pen-to-square'"></i>
+                            <span x-text="editMode ? '編集を完了' : 'サイトを編集'"></span>
+                        </button>
+                    </div>
+                </template>
             </div>
         </div>
     </header>
@@ -150,8 +155,8 @@
                     <!-- 編集時の画像URL変更用入力 -->
                     <div x-show="editMode" class="mt-4 p-4 bg-white rounded-xl border border-gold-500/50 shadow-md space-y-3">
                         <div>
-                            <label class="block text-xs font-semibold text-stone-600 mb-1">または画像 URL を直接入力</label>
-                            <input type="text" x-model="profile.image" @input="saveToLocalStorage()" placeholder="https://..." class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-gold-500">
+                            <label class="block text-xs font-semibold text-stone-600 mb-1">または画像 URL (Base64等) を直接入力</label>
+                            <input type="text" x-model="profile.image" @input="saveToLocalStorage()" placeholder="https:// または data:image/..." class="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-gold-500">
                         </div>
                     </div>
                 </div>
@@ -210,11 +215,11 @@
                     <div class="flex flex-wrap items-center gap-6 pt-4 border-t border-stone-200/60">
                         <div class="flex items-center space-x-2 text-stone-600 text-sm">
                             <i class="fa-solid fa-location-dot text-gold-600"></i>
-                            <span x-text="profile.location || 'Tokyo / Japan'" class="font-medium"></span>
+                            <span x-text="profile.location" class="font-medium"></span>
                         </div>
                         <div class="flex items-center space-x-2 text-stone-600 text-sm">
                             <i class="fa-solid fa-camera text-gold-600"></i>
-                            <span x-text="profile.specialty || 'Commercial & Fine Art'" class="font-medium"></span>
+                            <span x-text="profile.specialty" class="font-medium"></span>
                         </div>
                     </div>
                 </div>
@@ -229,7 +234,6 @@
                         <span class="text-gold-600 text-xs tracking-widest font-semibold uppercase">Portfolio</span>
                         <h2 class="text-3xl md:text-4xl font-light text-stone-900 mt-1">フォトアーカイブ</h2>
                     </div>
-                    <!-- ジャンルフィルター -->
                     <div class="flex flex-wrap gap-2 mt-6 md:mt-0">
                         <button @click="currentGenre = 'All'" 
                             :class="currentGenre === 'All' ? 'bg-gold-500 text-white font-medium shadow-sm' : 'bg-white text-stone-600 hover:text-stone-900 border border-stone-200'"
@@ -300,7 +304,6 @@
                                         </div>
                                     </template>
                                 </div>
-                                <!-- 編集モード時の削除ボタン -->
                                 <button x-show="editMode" @click="removeArchive(item.id)" class="w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-500 hover:text-white transition flex items-center justify-center flex-shrink-0" title="削除">
                                     <i class="fa-solid fa-trash text-xs"></i>
                                 </button>
@@ -351,7 +354,6 @@
                                 </ul>
                             </div>
                         </template>
-                        <!-- 編集モード -->
                         <template x-if="editMode">
                             <div class="space-y-4">
                                 <div>
@@ -399,7 +401,6 @@
                                 <p class="text-stone-600 text-xs leading-relaxed font-light" x-text="flow.desc"></p>
                             </div>
                         </template>
-                        <!-- 編集モード -->
                         <template x-if="editMode">
                             <div class="space-y-3">
                                 <input type="text" x-model="flow.title" @input="saveToLocalStorage()" class="w-full bg-stone-50 border border-stone-300 rounded px-2 py-1 text-xs text-stone-800">
@@ -411,7 +412,7 @@
             </div>
         </section>
 
-        <!-- ④ 写真レンタル・ライセンス提供セクション（インテリアデザイン） -->
+        <!-- ④ 写真レンタル・ライセンス提供セクション -->
         <section id="licensing" class="py-24 bg-[#f5f2e9] border-t border-stone-300/60 px-6">
             <div class="max-w-7xl mx-auto">
                 <div class="bg-white border border-stone-200/80 rounded-3xl p-8 md:p-16 relative overflow-hidden shadow-sm">
@@ -426,7 +427,6 @@
                             </div>
                         </template>
 
-                        <!-- 編集モード -->
                         <template x-if="editMode">
                             <div class="space-y-4 bg-stone-50 p-6 rounded-xl border border-gold-500/40">
                                 <div>
@@ -445,7 +445,6 @@
                         </template>
                     </div>
 
-                    <!-- 編集モード：インテリアイメージ追加 -->
                     <div x-show="editMode" class="mb-8 p-6 bg-stone-50 rounded-xl border border-stone-300">
                         <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-3">インテリアイメージ写真を追加</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
@@ -463,7 +462,6 @@
                         </div>
                     </div>
 
-                    <!-- インテリア写真ギャラリー（イメージ用） -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <template x-for="(imgUrl, index) in licensing.images" :key="index">
                             <div class="relative group aspect-[16/10] rounded-xl overflow-hidden bg-stone-200 border border-stone-200 shadow-sm">
@@ -491,7 +489,6 @@
                 </div>
             </template>
 
-            <!-- 編集モード時のテキスト編集フォーム -->
             <template x-if="editMode">
                 <div class="max-w-xl mx-auto p-6 bg-white rounded-2xl border border-gold-500/50 text-left mb-8 shadow-md space-y-4">
                     <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-2">お問い合わせセクションのテキスト編集</h3>
@@ -510,9 +507,7 @@
                 </div>
             </template>
 
-            <!-- デザイン性のあるコンタクトカード -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto mb-12">
-                <!-- Instagram リンク -->
                 <a :href="contact.instagram || '#'" target="_blank" class="group p-8 bg-white border border-stone-200 rounded-2xl hover:border-gold-500 hover:shadow-md transition flex flex-col items-center justify-center space-y-4">
                     <div class="w-14 h-14 rounded-full bg-gold-500/10 text-gold-600 flex items-center justify-center text-2xl group-hover:bg-gold-500 group-hover:text-white transition">
                         <i class="fa-brands fa-instagram"></i>
@@ -523,7 +518,6 @@
                     </div>
                 </a>
 
-                <!-- Email リンク -->
                 <a :href="'mailto:' + (contact.email || '')" class="group p-8 bg-white border border-stone-200 rounded-2xl hover:border-gold-500 hover:shadow-md transition flex flex-col items-center justify-center space-y-4">
                     <div class="w-14 h-14 rounded-full bg-gold-500/10 text-gold-600 flex items-center justify-center text-2xl group-hover:bg-gold-500 group-hover:text-white transition">
                         <i class="fa-solid fa-envelope"></i>
@@ -535,7 +529,6 @@
                 </a>
             </div>
 
-            <!-- 編集モード時のコンタクト設定 -->
             <div x-show="editMode" class="max-w-xl mx-auto p-6 bg-white rounded-2xl border border-gold-500/50 text-left mb-8 shadow-md">
                 <h3 class="text-xs font-semibold text-gold-600 uppercase tracking-wider mb-4">連絡先情報の編集</h3>
                 <div class="space-y-4">
@@ -550,16 +543,17 @@
                 </div>
             </div>
         </section>
-
     </main>
 
     <!-- Alpine.js Logic -->
     <script>
         function portfolioApp() {
             return {
+                isAdmin: new URLSearchParams(window.location.search).get('admin') === 'true',
                 editMode: false,
                 currentGenre: 'All',
-                siteName: 'AOI SATOH',
+                
+                siteName: 'Sukubun Lab',
                 showSavedToast: false,
                 toastMessage: '変更内容を保存しました',
 
@@ -649,11 +643,11 @@
                 },
 
                 profile: {
-                    name: '佐藤 葵 / Aoi Satoh',
-                    title: 'Commercial & Fine Art Photographer',
-                    location: 'Tokyo / Japan',
+                    name: '伊波 憲汰 / Kenta Iha',
+                    title: 'Art Photographer',
+                    location: '沖縄県うるま市',
                     specialty: 'Commercial & Fine Art',
-                    bio: '東京を拠点に活動するフォトグラファー。自然光を活かした繊細な色彩表現と、被写体のストーリーを引き出す静寂感のあるポートレートや風景写真を得意としています。商業撮影からアート作品のインテリア展示用ライセンス提供まで幅広く展開しています。',
+                    bio: '沖縄県うるま市出身。\n商業撮影からアート作品のインテリア展示用提供まで幅広く展開しています。',
                     image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800'
                 },
 
@@ -666,11 +660,7 @@
                     { id: 6, title: 'Shadow & Light', genre: 'Portrait', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=800' }
                 ],
 
-                newArchive: {
-                    title: '',
-                    genre: '',
-                    url: ''
-                },
+                newArchive: { title: '', genre: '', url: '' },
 
                 get availableGenres() {
                     const genres = this.archives.map(a => a.genre).filter(Boolean);
@@ -678,9 +668,7 @@
                 },
 
                 get filteredArchives() {
-                    if (this.currentGenre === 'All') {
-                        return this.archives;
-                    }
+                    if (this.currentGenre === 'All') return this.archives;
                     return this.archives.filter(item => item.genre === this.currentGenre);
                 },
 
@@ -772,8 +760,8 @@
                     subtitle: 'Get In Touch',
                     title: 'お問い合わせ・ご相談',
                     description: '撮影のご依頼、作品ライセンスについてのご相談、コラボレーションなど、お気軽にお問い合わせください。',
-                    instagram: 'https://instagram.com/aoisatoh_photo',
-                    email: 'contact@aoisatoh.com'
+                    instagram: 'https://instagram.com/sukubun_lab',
+                    email: 'contact@example.com'
                 },
 
                 formatInstagramHandle(url) {
